@@ -14,20 +14,25 @@ pub enum LiteralsSectionType {
     Treeless,
 }
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum LiteralsSectionParseError {
-    #[display(fmt = "Illegal literalssectiontype. Is: {got}, must be in: 0, 1, 2, 3")]
+    /// Illegal literalssectiontype. Is: {got}, must be in: 0, 1, 2, 3
     IllegalLiteralSectionType { got: u8 },
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     GetBitsError(GetBitsError),
-    #[display(
-        fmt = "Not enough byte to parse the literals section header. Have: {have}, Need: {need}"
-    )]
+    /// Not enough byte to parse the literals section header. Have: {have}, Need: {need}
     NotEnoughBytes { have: usize, need: u8 },
 }
+
+impl From<GetBitsError> for LiteralsSectionParseError {
+    fn from(e: GetBitsError) -> Self {
+        LiteralsSectionParseError::GetBitsError(e)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for LiteralsSectionParseError {}
 
 impl core::fmt::Display for LiteralsSectionType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {

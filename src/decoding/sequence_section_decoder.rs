@@ -6,39 +6,54 @@ use super::scratch::FSEScratch;
 use crate::fse::{FSEDecoder, FSEDecoderError, FSETableError};
 use alloc::vec::Vec;
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum DecodeSequenceError {
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     GetBitsError(GetBitsError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     FSEDecoderError(FSEDecoderError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     FSETableError(FSETableError),
-    #[display(
-        fmt = "Padding at the end of the sequence_section was more than a byte long: {skipped_bits} bits. Probably caused by data corruption"
-    )]
+    /// Padding at the end of the sequence_section was more than a byte long: {skipped_bits} bits. Probably caused by data corruption
     ExtraPadding { skipped_bits: i32 },
-    #[display(fmt = "Do not support offsets bigger than 1<<32; got: {offset_code}")]
+    /// Do not support offsets bigger than 1<<32; got: {offset_code}
     UnsupportedOffset { offset_code: u8 },
-    #[display(fmt = "Read an offset == 0. That is an illegal value for offsets")]
+    /// Read an offset == 0. That is an illegal value for offsets
     ZeroOffset,
-    #[display(fmt = "Bytestream did not contain enough bytes to decode num_sequences")]
+    /// Bytestream did not contain enough bytes to decode num_sequences
     NotEnoughBytesForNumSequences,
-    #[display(fmt = "Did not use full bitstream. Bits left: {bits_remaining} ({} bytes)", bits_remaining / 8)]
+    /// Did not use full bitstream. Bits left: {bits_remaining}
     ExtraBits { bits_remaining: isize },
-    #[display(fmt = "compression modes are none but they must be set to something")]
+    /// compression modes are none but they must be set to something
     MissingCompressionMode,
-    #[display(fmt = "Need a byte to read for RLE ll table")]
+    /// Need a byte to read for RLE ll table
     MissingByteForRleLlTable,
-    #[display(fmt = "Need a byte to read for RLE of table")]
+    /// Need a byte to read for RLE of table
     MissingByteForRleOfTable,
-    #[display(fmt = "Need a byte to read for RLE ml table")]
+    /// Need a byte to read for RLE ml table
     MissingByteForRleMlTable,
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeSequenceError {}
+
+impl From<GetBitsError> for DecodeSequenceError {
+    fn from(e: GetBitsError) -> Self {
+        DecodeSequenceError::GetBitsError(e)
+    }
+}
+
+impl From<FSEDecoderError> for DecodeSequenceError {
+    fn from(e: FSEDecoderError) -> Self {
+        DecodeSequenceError::FSEDecoderError(e)
+    }
+}
+
+impl From<FSETableError> for DecodeSequenceError {
+    fn from(e: FSETableError) -> Self {
+        DecodeSequenceError::FSETableError(e)
+    }
 }
 
 pub fn decode_sequences(

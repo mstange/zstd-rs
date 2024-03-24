@@ -25,89 +25,143 @@ enum DecoderState {
     Failed, //TODO put "self.internal_state = DecoderState::Failed;" everywhere an unresolvable error occurs
 }
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum BlockHeaderReadError {
-    #[display(fmt = "Error while reading the block header")]
-    #[from]
+    /// Error while reading the block header
     ReadError(io::Error),
-    #[display(fmt = "Reserved block occured. This is considered corruption by the documentation")]
+    /// Reserved block occured. This is considered corruption by the documentation
     FoundReservedBlock,
-    #[display(fmt = "Error getting block type: {_0}")]
-    #[from]
+    /// Error getting block type: {0}
     BlockTypeError(BlockTypeError),
-    #[display(fmt = "Error getting block content size: {_0}")]
-    #[from]
+    /// Error getting block content size: {0}
     BlockSizeError(BlockSizeError),
 }
 
-#[derive(Debug, derive_more::Display)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[cfg(feature = "std")]
+impl std::error::Error for BlockHeaderReadError {}
+
+impl From<io::Error> for BlockHeaderReadError {
+    fn from(e: io::Error) -> Self {
+        BlockHeaderReadError::ReadError(e)
+    }
+}
+
+impl From<BlockTypeError> for BlockHeaderReadError {
+    fn from(e: BlockTypeError) -> Self {
+        BlockHeaderReadError::BlockTypeError(e)
+    }
+}
+
+impl From<BlockSizeError> for BlockHeaderReadError {
+    fn from(e: BlockSizeError) -> Self {
+        BlockHeaderReadError::BlockSizeError(e)
+    }
+}
+
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum BlockTypeError {
-    #[display(
-        fmt = "Invalid Blocktype number. Is: {num} Should be one of: 0, 1, 2, 3 (3 is reserved though"
-    )]
+    /// Invalid Blocktype number. Is: {num} Should be one of: 0, 1, 2, 3 (3 is reserved though
     InvalidBlocktypeNumber { num: u8 },
 }
 
-#[derive(Debug, derive_more::Display)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[cfg(feature = "std")]
+impl std::error::Error for BlockTypeError {}
+
+const ABSOLUTE_MAXIMUM_BLOCK_SIZE: u32 = 128 * 1024;
+
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum BlockSizeError {
-    #[display(
-        fmt = "Blocksize was bigger than the absolute maximum {ABSOLUTE_MAXIMUM_BLOCK_SIZE} (128kb). Is: {size}"
-    )]
+    /// Blocksize was bigger than the absolute maximum 131072 (128kb). Is: {size}
     BlockSizeTooLarge { size: u32 },
 }
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[cfg(feature = "std")]
+impl std::error::Error for BlockSizeError {}
+
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum DecompressBlockError {
-    #[display(fmt = "Error while reading the block content: {_0}")]
-    #[from]
+    /// Error while reading the block content: {0}
     BlockContentReadError(io::Error),
-    #[display(
-        fmt = "Malformed section header. Says literals would be this long: {expected_len} but there are only {remaining_bytes} bytes left"
-    )]
+    /// Malformed section header. Says literals would be this long: {expected_len} but there are only {remaining_bytes} bytes left
     MalformedSectionHeader {
         expected_len: usize,
         remaining_bytes: usize,
     },
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     DecompressLiteralsError(DecompressLiteralsError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     LiteralsSectionParseError(LiteralsSectionParseError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     SequencesHeaderParseError(SequencesHeaderParseError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     DecodeSequenceError(DecodeSequenceError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     ExecuteSequencesError(ExecuteSequencesError),
 }
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+impl From<io::Error> for DecompressBlockError {
+    fn from(e: io::Error) -> Self {
+        DecompressBlockError::BlockContentReadError(e)
+    }
+}
+
+impl From<DecompressLiteralsError> for DecompressBlockError {
+    fn from(e: DecompressLiteralsError) -> Self {
+        DecompressBlockError::DecompressLiteralsError(e)
+    }
+}
+
+impl From<LiteralsSectionParseError> for DecompressBlockError {
+    fn from(e: LiteralsSectionParseError) -> Self {
+        DecompressBlockError::LiteralsSectionParseError(e)
+    }
+}
+
+impl From<SequencesHeaderParseError> for DecompressBlockError {
+    fn from(e: SequencesHeaderParseError) -> Self {
+        DecompressBlockError::SequencesHeaderParseError(e)
+    }
+}
+
+impl From<DecodeSequenceError> for DecompressBlockError {
+    fn from(e: DecodeSequenceError) -> Self {
+        DecompressBlockError::DecodeSequenceError(e)
+    }
+}
+
+impl From<ExecuteSequencesError> for DecompressBlockError {
+    fn from(e: ExecuteSequencesError) -> Self {
+        DecompressBlockError::ExecuteSequencesError(e)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecompressBlockError {}
+
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum DecodeBlockContentError {
-    #[display(fmt = "Can't decode next block if failed along the way. Results will be nonsense")]
+    /// Can't decode next block if failed along the way. Results will be nonsense
     DecoderStateIsFailed,
-    #[display(
-        fmt = "Cant decode next block body, while expecting to decode the header of the previous block. Results will be nonsense"
-    )]
+    /// Cant decode next block body, while expecting to decode the header of the previous block. Results will be nonsense
     ExpectedHeaderOfPreviousBlock,
-    #[display(fmt = "Error while reading bytes for {step}: {source}")]
+    /// Error while reading bytes for {step}: {source}
     ReadError { step: BlockType, source: io::Error },
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     DecompressBlockError(DecompressBlockError),
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeBlockContentError {}
+
+impl From<DecompressBlockError> for DecodeBlockContentError {
+    fn from(e: DecompressBlockError) -> Self {
+        DecodeBlockContentError::DecompressBlockError(e)
+    }
 }
 
 pub fn new() -> BlockDecoder {
@@ -116,8 +170,6 @@ pub fn new() -> BlockDecoder {
         header_buffer: [0u8; 3],
     }
 }
-
-const ABSOLUTE_MAXIMUM_BLOCK_SIZE: u32 = 128 * 1024;
 
 impl BlockDecoder {
     pub fn decode_block_content(

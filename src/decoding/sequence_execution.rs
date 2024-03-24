@@ -1,16 +1,23 @@
 use super::{decodebuffer::DecodebufferError, scratch::DecoderScratch};
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum ExecuteSequencesError {
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     DecodebufferError(DecodebufferError),
-    #[display(fmt = "Sequence wants to copy up to byte {wanted}. Bytes in literalsbuffer: {have}")]
+    /// Sequence wants to copy up to byte {wanted}. Bytes in literalsbuffer: {have}
     NotEnoughBytesForSequence { wanted: usize, have: usize },
-    #[display(fmt = "Illegal offset: 0 found")]
+    /// Illegal offset: 0 found
     ZeroOffset,
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ExecuteSequencesError {}
+
+impl From<DecodebufferError> for ExecuteSequencesError {
+    fn from(e: DecodebufferError) -> Self {
+        ExecuteSequencesError::DecodebufferError(e)
+    }
 }
 
 pub fn execute_sequences(scratch: &mut DecoderScratch) -> Result<(), ExecuteSequencesError> {

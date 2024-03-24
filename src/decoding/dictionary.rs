@@ -14,20 +14,30 @@ pub struct Dictionary {
     pub offset_hist: [u32; 3],
 }
 
-#[derive(Debug, derive_more::Display, derive_more::From)]
-#[cfg_attr(feature = "std", derive(derive_more::Error))]
+#[derive(Debug, displaydoc::Display)]
 #[non_exhaustive]
 pub enum DictionaryDecodeError {
-    #[display(
-        fmt = "Bad magic_num at start of the dictionary; Got: {got:#04X?}, Expected: {MAGIC_NUM:#04x?}"
-    )]
+    /// Bad magic_num at start of the dictionary; Got: {got:#04X?}, Expected: {MAGIC_NUM:#04x?}
     BadMagicNum { got: [u8; 4] },
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     FSETableError(FSETableError),
-    #[display(fmt = "{_0:?}")]
-    #[from]
+    /// {0:?}
     HuffmanTableError(HuffmanTableError),
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DictionaryDecodeError {}
+
+impl From<FSETableError> for DictionaryDecodeError {
+    fn from(e: FSETableError) -> Self {
+        DictionaryDecodeError::FSETableError(e)
+    }
+}
+
+impl From<HuffmanTableError> for DictionaryDecodeError {
+    fn from(e: HuffmanTableError) -> Self {
+        DictionaryDecodeError::HuffmanTableError(e)
+    }
 }
 
 pub const MAGIC_NUM: [u8; 4] = [0x37, 0xA4, 0x30, 0xEC];
